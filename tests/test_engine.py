@@ -239,3 +239,11 @@ def test_validator_rejects_numeric_server_id() -> None:
         if "server_id" in event:
             event["server_id"] = 1
     assert not validate(servers, requests, events, Configuration()).valid
+
+
+@pytest.mark.parametrize("invalid_id", ["\ud800", "\udfff"])
+def test_domain_rejects_invalid_unicode_ids(invalid_id: str) -> None:
+    with pytest.raises(InputError, match="valid Unicode"):
+        Server(invalid_id, 1, 1, 1)
+    with pytest.raises(InputError, match="valid Unicode"):
+        Request(invalid_id, 0, 1, 1)

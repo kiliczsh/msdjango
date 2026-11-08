@@ -39,6 +39,10 @@ def identifier(value: object, name: str) -> str:
         )
     if any(ord(char) < 32 for char in value):
         raise InputError(f"{name} must not contain control characters.")
+    try:
+        value.encode("utf-8")
+    except UnicodeError as exc:
+        raise InputError(f"{name} must contain valid Unicode characters.") from exc
     return value
 
 

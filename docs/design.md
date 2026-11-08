@@ -138,7 +138,8 @@ The supplied schemas are retained:
   additionally carries a reason.
 
 IDs are unique, nonempty, at most 80 characters, without edge whitespace or ASCII
-control characters. Server IDs cannot contain `/` or equal `.` or `..`, so every
+control characters, and must encode as valid UTF-8. Server IDs cannot contain `/`
+or equal `.` or `..`, so every
 server can be addressed through the API. IDs are compared as case-sensitive
 strings. Request IDs do not affect resource requirements; they break arrival ties.
 

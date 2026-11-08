@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
 
 from balancer.models import BootstrapMarker, Server
-from simulation.domain import InputError, parse_servers, read_json
+from simulation.domain import MAX_SERVERS, InputError, parse_servers, read_json
 
 
 class Command(BaseCommand):
@@ -34,6 +34,9 @@ class Command(BaseCommand):
                 if not created or Server.objects.exists():
                     self.stdout.write("Existing server configuration retained.")
                     return
+            retained = Server.objects.exclude(pk__in=[server.id for server in servers]).count()
+            if retained + len(servers) > MAX_SERVERS:
+                raise CommandError(f"Import would exceed the {MAX_SERVERS}-server limit.")
             for server in servers:
                 Server.objects.update_or_create(
                     pk=server.id,

@@ -4,12 +4,14 @@ from unittest.mock import patch
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from kombu.exceptions import OperationalError
 from rest_framework.test import APIClient
 
 from balancer.models import Run, Server
 from balancer.tasks import execute_run
 from simulation.domain import (
+    MAX_SERVERS,
     MODES,
     STRATEGIES,
     Configuration,
@@ -191,3 +193,27 @@ def test_initial_seed_never_recreates_deliberately_deleted_servers() -> None:
     Server.objects.all().delete()
     call_command("load_servers", ROOT / "task/servers.json", once=True)
     assert not Server.objects.exists()
+
+
+def test_server_id_with_invalid_unicode_returns_validation_error(client: APIClient) -> None:
+    response = client.post(
+        "/api/servers/",
+        data=rb'{"id":"\ud800","cpu_units_per_tick":1,"mem_mb":1,"rate_limit_per_sec":1}',
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert response.json()["id"]
+    assert not Server.objects.exists()
+
+
+def test_server_import_respects_total_cluster_limit_without_partial_updates() -> None:
+    Server.objects.bulk_create(
+        [
+            Server(id=f"existing-{i}", cpu_units_per_tick=1, mem_mb=1, rate_limit_per_sec=1)
+            for i in range(MAX_SERVERS)
+        ]
+    )
+    with pytest.raises(CommandError, match="server limit"):
+        call_command("load_servers", ROOT / "task/servers.json")
+    assert Server.objects.count() == MAX_SERVERS
+    assert not Server.objects.filter(pk__in=["s1", "s2"]).exists()
