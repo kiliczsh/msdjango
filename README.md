@@ -1,4 +1,4 @@
-# Medsien load balancer simulation
+# load balancer simulation
 
 A deterministic Python simulator with a Django / Django REST Framework dashboard,
 PostgreSQL run history, and Celery workers backed by Redis. It implements two
