@@ -56,6 +56,13 @@ def _replay(
     for request in requests:
         expected_arrivals[request.t].add(request.request_id)
     previous = 0
+    lifecycle: dict[str, str] = {}
+    predecessors = {
+        "REQUEST_ARRIVED": None,
+        "REQUEST_STARTED": "REQUEST_ARRIVED",
+        "REQUEST_FINISHED": "REQUEST_STARTED",
+        "REQUEST_DROPPED": "REQUEST_ARRIVED",
+    }
     for event in events:
         tick = integer(event.get("t"), "event t", 0, MAX_TICKS)
         if tick < previous:
@@ -74,6 +81,10 @@ def _replay(
             event.get("server_id"), str
         ):
             raise InputError("Started and finished events require a string server_id.")
+        name, rid = str(event["event"]), str(event["request_id"])
+        if lifecycle.get(rid) != predecessors[name]:
+            raise InputError(f"Invalid event order for {rid}: {name}.")
+        lifecycle[rid] = name
     previous = 0
     for tick_value, group in groupby(events, key=lambda event: event["t"]):
         tick = integer(tick_value, "event t", 0, MAX_TICKS)
