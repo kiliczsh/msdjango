@@ -47,6 +47,17 @@ or reconstructed prompts.
    wait for everything to be completed to commit act like developer"
    - Committed completed slices as tooling/fixtures, engine/tests, API/worker,
      dashboard, containerization/examples, and subsequent fixes/documentation.
+7. "do a final review against the assignment, especially correctness across all
+   8 model/strategy combinations. fix any gaps, keep it simple, and commit fixes
+   logically using conventional commits"
+   - Re-read the assignment and reviewed the engine, replay, worker, input
+     boundaries, tests, and delivery setup.
+   - Added hand-calculated expectations and FIFO/rate regressions for every pair;
+     fixed same-tick trace causality, input boundaries, and CLI reporting.
+8. "meanwhile improve ui/ux for ease of understanding and use"
+   - Added guided steps, model/strategy explanations, one-click sample requests,
+     clearer run states and errors, explicit timeline times, and deletion confirmation.
+   - Exercised all eight pairs through the actual dashboard and inspected mobile layout.
 
 ## Verification decisions prompted by review
 

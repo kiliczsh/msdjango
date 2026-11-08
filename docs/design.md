@@ -89,7 +89,9 @@ pass the original validator in an isolated subprocess. Concurrent runs mark
 original validation as `not_applicable`, because shared CPU is outside its model.
 
 The corrected validator consumes the trace rather than regenerating engine
-output. It checks ordered nonnegative timestamps, known IDs, exact arrivals,
+output. It checks each request's lifecycle in file order, including events that
+share a timestamp, before replaying CPU work at tick boundaries. It checks ordered
+nonnegative timestamps, known IDs, exact arrivals,
 legal lifecycle transitions, expected completions under the active CPU shares,
 aggregate memory reservations, per-tick starts, execution-model concurrency, and a
 terminal outcome for every input request. It rejects early, late, duplicated,
@@ -167,7 +169,10 @@ on a common scale with exact tick labels.
 The UI is intentionally server-rendered with small DOM-based JavaScript. User
 supplied identifiers are rendered as text, not HTML. It supports pagination,
 worker-state polling, visible errors, responsive tables, and keyboard-accessible
-forms. Polling stops at a terminal state.
+forms. Polling stops at a terminal state. Model and strategy explanations, a sample
+CSV shortcut, explicit timestamp columns, and visible validation results guide the
+setup-to-results flow. Selecting a saved run brings its results into view and
+moves keyboard focus there. Deletion requires confirmation within the dashboard.
 
 ## Deliberate trade-offs
 

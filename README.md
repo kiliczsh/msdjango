@@ -16,7 +16,8 @@ docker compose up --build -d --wait
 
 Open <http://localhost:8000>. Initial startup migrates PostgreSQL and seeds the
 provided servers once for a fresh database. Add/edit/delete servers in the
-dashboard, select a model and strategy, and upload `task/requests.csv`. The results
+dashboard, select a model and strategy, and choose **Use sample requests** or upload
+your own CSV. A sample download and CSV format guide are also available. The results
 include validation status, metrics, input snapshots, a request timeline, and a
 `run.jsonl` download. Changes to servers affect future runs only.
 
@@ -40,7 +41,8 @@ docker compose --profile test run --rm --build test
 docker compose --profile test run --rm smoke
 ```
 
-The first command runs Ruff lint and formatting checks, ty, Pyright, Django system
+The first command runs Ruff lint and formatting checks, ty, Pyright, JavaScript
+syntax validation, Django system
 and migration checks, and the pytest suite against **PostgreSQL**. It includes all
 eight model/strategy combinations at both engine and API levels. The second
 command tests the actual HTTP → PostgreSQL → Redis → Celery → downloaded trace
@@ -78,7 +80,8 @@ runs do not claim compatibility with the original validator.
 
 See [design documentation](docs/design.md) for tick semantics, assumptions, failure
 handling, and trade-offs, and [AI usage](docs/ai-usage.md) for prompts and
-verification. The [validation record](docs/validation.md) records completed checks.
+verification. The [validation record](docs/validation.md) records completed checks;
+the [assignment review](docs/assignment-review.md) maps each requirement to its implementation.
 
 ## CLI and example traces
 
@@ -115,6 +118,7 @@ their traces under distinct run IDs; timestamps and UUIDs never enter trace byte
 | GET | `/api/runs/{uuid}/` | Status, immutable snapshots, results and validation |
 | GET | `/api/runs/{uuid}/trace/` | Validated JSONL attachment; 409 until successful |
 | GET | `/api/health/` | Application/database readiness |
+| GET | `/sample/requests.csv` | Download the supplied example requests |
 
 POST/PATCH/PUT/DELETE requests require the CSRF cookie and `X-CSRFToken` header.
 The dashboard supplies both. Server numeric fields are JSON integers, not strings,

@@ -16,13 +16,13 @@ docker compose --profile test run --rm test
 | Runtime and development image builds | Passed |
 | Database migration and application startup | Passed; web/database/Redis healthy |
 | Ruff lint | All checks passed |
-| Ruff formatting | 38 Python files already formatted |
+| Ruff formatting | 41 Python files already formatted |
 | ty | All checks passed |
 | Pyright | 0 errors, 0 warnings |
 | Django system checks | No issues |
 | Migration drift | No changes detected |
-| PostgreSQL pytest suite | **70 passed**, no warnings or skips |
-| Local `.venv` quality suite | **69 passed, 1 expected skip** |
+| PostgreSQL pytest suite | **120 passed**, no warnings or skips |
+| Local `.venv` quality suite | **119 passed, 1 expected skip** |
 | JavaScript syntax (`node --check`) | Passed |
 
 The local skip is the PostgreSQL-specific duplicate-delivery row-lock test.
@@ -57,6 +57,13 @@ overlapping concurrent trace.
 
 ## Additional exercised behavior
 
+- A hand-calculated heterogeneous workload for every model/strategy pair checks
+  exact server selection, start and finish times, idle gaps, memory release,
+  round-robin cursor state, and impossible-request drops. All four sequential
+  traces also pass the original validator.
+- All eight combinations independently exercise FIFO memory blocking and a
+  rate-limited workload with exact fractional-CPU finish expectations.
+- All eight reject a same-tick start or drop event that precedes its arrival.
 - Twelve seeded overload workloads for each of the eight combinations: 96
   workloads, with 20 requests each, including memory-infeasible drops.
 - Hand-calculated shared-CPU finishes, fractional CPU shares, aggregate memory,
@@ -72,6 +79,10 @@ overlapping concurrent trace.
   duplicate worker delivery under real PostgreSQL row locks.
 - One-time startup seeding: intentional deletion of all servers survives subsequent
   startup seeding attempts.
+- Server imports reject a total cluster larger than the supported limit without
+  partial writes; pure inputs reject invalid Unicode identifiers.
+- The corrected validator CLI reports aggregate metrics for both models and
+  returns a clean invalid result for non-UTF-8 input files.
 - A request finishing exactly at the 1,000,000-tick limit and explicit failure when
   queued work would extend beyond that limit.
 
@@ -105,12 +116,17 @@ observed through the rendered UI:
 
 - Server configuration rendered correctly; edit and cancel controls worked.
 - Execution-model and strategy controls changed selection and descriptions.
-- The provided CSV was selected through the browser file chooser.
-- A concurrent/round-robin run was submitted and reached `succeeded` through the
-  actual worker.
+- The sample-data shortcut populated the actual file input with the provided CSV.
+- **All eight model/strategy combinations** were submitted through the dashboard
+  and reached completed/validated state with a trace download link.
 - Replay validation status, per-server metrics, and exact request timeline values
   rendered correctly; a trace download link was available.
-- The browser console contained no warnings or errors during that flow.
+- Saved-run navigation scrolled to results and moved keyboard focus there.
+- Server IDs stayed read-only during editing; cancel restored the add form.
+- Server deletion opened a confirmation dialog; cancelling retained the server.
+- At a 390-pixel mobile viewport, the page fit the viewport and wide data tables
+  remained scrollable. The viewport override was reset after the check.
+- The browser console contained no warnings or errors during these flows.
 
 ## Development issues resolved
 
@@ -120,3 +136,8 @@ unclosed test-thread connections during database teardown; those connections are
 now explicitly closed. Both fixes were rerun successfully. A transient registry
 metadata timeout was resolved by using verified immutable Python and uv image
 digests. These were development failures, not waived final checks.
+
+The final review additionally reproduced and fixed a replay gap where same-tick
+starts could precede arrivals in the file. The supplied sample trace still passes
+the corrected validator, and regenerating all eight examples still produces an
+empty Git diff. See [the requirement-by-requirement review](assignment-review.md).
