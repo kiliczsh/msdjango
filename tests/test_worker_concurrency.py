@@ -5,7 +5,7 @@ from dataclasses import asdict
 from unittest.mock import patch
 
 import pytest
-from django.db import close_old_connections, connection
+from django.db import close_old_connections, connection, connections
 
 from balancer.models import Run
 from balancer.tasks import execute_run
@@ -29,7 +29,7 @@ def test_duplicate_worker_deliveries_execute_once() -> None:
         try:
             execute_run(str(run.pk))
         finally:
-            close_old_connections()
+            connections.close_all()
 
     with patch("balancer.tasks.simulate", wraps=simulate) as engine:
         with ThreadPoolExecutor(max_workers=2) as executor:
