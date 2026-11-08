@@ -1,0 +1,50 @@
+[project]
+name = "medsien-load-balancer"
+version = "0.1.0"
+description = "Deterministic load balancer simulation with Django"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "django>=5.2,<5.3",
+  "djangorestframework>=3.16,<3.17",
+  "celery[redis]>=5.6,<5.7",
+  "psycopg[binary]>=3.2,<4",
+  "gunicorn>=23,<24; sys_platform != 'win32'",
+  "whitenoise>=6.9,<7",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8,<10",
+  "pytest-django>=4.11,<5",
+  "ruff>=0.14,<1",
+  "ty>=0.0.1,<1",
+  "pyright>=1.1.400,<2",
+  "django-stubs>=5.2,<5.3",
+  "djangorestframework-stubs>=3.16,<3.17",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["task", ".python", "balancer/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pyright]
+include = ["simulation", "balancer", "config", "tests", "scripts", "manage.py", "validate_run.py"]
+exclude = ["**/__pycache__", "balancer/migrations"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
+
+[tool.ty.src]
+include = ["simulation", "balancer", "config", "tests", "scripts", "manage.py", "validate_run.py"]
+exclude = ["balancer/migrations"]
