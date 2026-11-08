@@ -70,6 +70,10 @@ def _replay(
             raise InputError("Unknown event type.")
         if event.get("request_id") not in request_by_id:
             raise InputError("Unknown request ID.")
+        if event["event"] in {"REQUEST_STARTED", "REQUEST_FINISHED"} and not isinstance(
+            event.get("server_id"), str
+        ):
+            raise InputError("Started and finished events require a string server_id.")
     previous = 0
     for tick_value, group in groupby(events, key=lambda event: event["t"]):
         tick = integer(tick_value, "event t", 0, MAX_TICKS)

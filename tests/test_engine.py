@@ -230,3 +230,12 @@ def test_large_blocked_queue_and_duration_limit() -> None:
 def test_unaddressable_server_ids_are_rejected(sid: str) -> None:
     with pytest.raises(InputError):
         Server(sid, 1, 1, 1)
+
+
+def test_validator_rejects_numeric_server_id() -> None:
+    servers, requests = [Server("1", 1, 1, 1)], [Request("r", 0, 1, 1)]
+    events = simulate(servers, requests, Configuration())
+    for event in events:
+        if "server_id" in event:
+            event["server_id"] = 1
+    assert not validate(servers, requests, events, Configuration()).valid
