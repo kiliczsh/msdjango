@@ -1,9 +1,10 @@
 from dataclasses import asdict
 from typing import cast
 
+from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import connection, transaction
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from kombu.exceptions import OperationalError
@@ -32,6 +33,15 @@ from simulation.domain import (
 
 def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "balancer/dashboard.html", {"modes": MODES, "strategies": STRATEGIES})
+
+
+def sample_requests(request: HttpRequest) -> FileResponse:
+    return FileResponse(
+        (settings.BASE_DIR / "task" / "requests.csv").open("rb"),
+        as_attachment=True,
+        filename="requests.csv",
+        content_type="text/csv",
+    )
 
 
 def health(request: HttpRequest) -> JsonResponse:

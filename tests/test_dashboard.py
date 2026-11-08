@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import pytest
+from django.http import FileResponse
 from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.django_db
@@ -17,3 +20,15 @@ def test_dashboard_contains_controls_and_issues_csrf_token() -> None:
     assert (
         client.post("/api/servers/", data, format="json", HTTP_X_CSRFTOKEN=token).status_code == 201
     )
+
+
+def test_sample_download_matches_assignment_input() -> None:
+    response = APIClient().get("/sample/requests.csv")
+    assert isinstance(response, FileResponse)
+    assert response.status_code == 200
+    assert 'filename="requests.csv"' in response["Content-Disposition"]
+    assert (
+        response.getvalue()
+        == (Path(__file__).resolve().parents[1] / "task/requests.csv").read_bytes()
+    )
+    response.close()

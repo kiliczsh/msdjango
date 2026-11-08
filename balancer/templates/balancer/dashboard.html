@@ -9,54 +9,85 @@
   <script src="{% static 'balancer/dashboard.js' %}" defer></script>
 </head>
 <body>
-  <header><div class="shell"><span class="brand">MEDSIEN <span>/ engineering lab</span></span>
-    <h1>Load balancer simulation</h1><p>Configure a cluster. Compare scheduling. Inspect every request.</p></div></header>
+  <header><div class="shell">
+    <span class="brand">MEDSIEN <span>/ engineering lab</span></span>
+    <h1>See how your cluster handles requests.</h1>
+    <p>Set up servers, choose how work is distributed, and inspect a validated simulation.</p>
+    <nav aria-label="Simulation steps"><a href="#cluster-heading">1. Configure servers</a><a href="#simulation-heading">2. Run a simulation</a><a href="#history-heading">Saved runs</a></nav>
+  </div></header>
   <main class="shell">
-    <div id="notice" role="alert" hidden></div>
+    <div id="notice" role="alert" tabindex="-1" hidden></div>
+    <p id="feedback" role="status" hidden></p>
     <div class="columns">
       <section class="card" aria-labelledby="cluster-heading">
-        <div class="section-title"><h2 id="cluster-heading">Server cluster</h2><span id="server-count" class="badge">Loading</span></div>
-        <p class="hint">Changes apply to future runs. Existing runs retain their configuration.</p>
-        <div class="table-scroll"><table><thead><tr><th>ID</th><th>CPU / tick</th><th>Memory MB</th><th>Starts / tick</th><th>Actions</th></tr></thead><tbody id="servers"></tbody></table></div>
+        <div class="section-title"><h2 id="cluster-heading"><span class="step">1</span> Configure servers</h2><button type="button" class="secondary small" id="refresh-servers">Refresh servers</button></div>
+        <p class="hint">Each server has its own speed, memory, and start budget. Edits affect new runs; saved runs keep their original configuration.</p>
+        <div class="cluster-summary" id="cluster-summary" aria-live="polite"><span>Loading servers…</span></div>
+        <div class="table-scroll"><table><caption class="sr-only">Configured servers and their capacities</caption><thead><tr><th>Server</th><th title="Work units processed per second">CPU units / s</th><th>Memory (MB)</th><th title="Maximum requests that may start in one second">Starts / s</th><th>Actions</th></tr></thead><tbody id="servers"></tbody></table></div>
         <form id="server-form">
           {% csrf_token %}
-          <h3 id="server-form-title">Add server</h3>
+          <h3 id="server-form-title">Add a server</h3>
           <div class="fields">
-            <label>Server ID<input name="id" required maxlength="80" placeholder="s3"></label>
-            <label>CPU units / tick<input name="cpu_units_per_tick" type="number" min="1" max="1000000000" value="10" required></label>
-            <label>Memory (MB)<input name="mem_mb" type="number" min="1" max="1000000000" value="1024" required></label>
-            <label>Starts / tick<input name="rate_limit_per_sec" type="number" min="1" max="1000000000" value="2" required></label>
+            <div><label for="server-id">Server ID</label><input id="server-id" name="id" required maxlength="80" placeholder="e.g. s3" autocomplete="off"></div>
+            <div><label for="server-cpu">CPU units per second</label><input id="server-cpu" name="cpu_units_per_tick" type="number" min="1" max="1000000000" value="10" required></div>
+            <div><label for="server-memory">Memory (MB)</label><input id="server-memory" name="mem_mb" type="number" min="1" max="1000000000" value="1024" required></div>
+            <div><label for="server-rate">Maximum starts per second</label><input id="server-rate" name="rate_limit_per_sec" type="number" min="1" max="1000000000" value="2" required></div>
           </div>
+          <p class="hint">For example, 10 CPU units/s completes 20 work units in 2 seconds when a request runs alone.</p>
           <div class="actions"><button type="submit" id="save-server">Add server</button><button type="button" class="secondary" id="cancel-edit" hidden>Cancel edit</button></div>
         </form>
       </section>
       <section class="card" aria-labelledby="simulation-heading">
-        <div class="section-title"><h2 id="simulation-heading">New simulation</h2><span class="badge">1 tick = 1 second</span></div>
+        <div class="section-title"><h2 id="simulation-heading"><span class="step">2</span> Run a simulation</h2><span class="badge">1 tick = 1 second</span></div>
         <form id="run-form">
-          <label>Execution model<select name="mode"><option value="sequential">Sequential · one request per server</option><option value="concurrent">Concurrent · equal CPU sharing</option></select></label>
-          <label>Scheduling strategy<select name="strategy"><option value="first_fit">First fit</option><option value="round_robin">Round robin</option><option value="least_connections">Least connections</option><option value="fastest_server">Fastest server</option></select></label>
-          <p id="strategy-description" class="hint"></p>
-          <label>Requests CSV<input name="requests_file" type="file" accept=".csv,text/csv" required></label>
-          <p class="hint">Columns: <code>t,request_id,work_units,mem_mb</code><br>Up to 2,000 requests and 1 MB. Temporarily blocked requests wait in strict FIFO order.</p>
-          <button type="submit" id="start-run">Run simulation</button>
+          <label for="run-mode">Execution model</label>
+          <select id="run-mode" name="mode" aria-describedby="model-description"><option value="sequential">Sequential — one request per server</option><option value="concurrent">Concurrent — shared CPU</option></select>
+          <p id="model-description" class="hint explanation"></p>
+          <label for="run-strategy">Scheduling strategy</label>
+          <select id="run-strategy" name="strategy" aria-describedby="strategy-description"><option value="first_fit">First fit</option><option value="round_robin">Round robin</option><option value="least_connections">Least connections</option><option value="fastest_server">Fastest server</option></select>
+          <p id="strategy-description" class="hint explanation"></p>
+          <div class="input-heading"><label for="requests-file">Requests CSV</label><a id="sample-download" href="{% url 'sample-requests' %}" download>Download sample</a></div>
+          <input id="requests-file" name="requests_file" type="file" accept=".csv,text/csv" required aria-describedby="file-status">
+          <div class="actions"><button type="button" class="secondary small" id="use-sample">Use sample requests</button><span id="file-status" class="hint" role="status">Choose a file or use the sample.</span></div>
+          <details class="input-help"><summary>CSV format and queue rules</summary>
+            <p>Each row gives an arrival second, unique request ID, work units, and required memory.</p>
+            <pre>t,request_id,work_units,mem_mb
+0,r1,20,200
+0,r2,10,100</pre>
+            <p>Up to 2,000 requests and 1 MB. Requests wait in arrival order, then request ID. A blocked request holds up the queue. Requests too large for every server are dropped.</p>
+          </details>
+          <p id="run-readiness" class="hint">Loading server configuration…</p>
+          <button type="submit" id="start-run" disabled>Run simulation</button>
         </form>
       </section>
     </div>
-    <section class="card" aria-labelledby="history-heading">
-      <div class="section-title"><h2 id="history-heading">Run history</h2><button type="button" class="secondary small" id="refresh-history">Refresh</button></div>
-      <div class="table-scroll"><table><thead><tr><th>Created</th><th>Model</th><th>Strategy</th><th>Status</th><th>Details</th></tr></thead><tbody id="runs"></tbody></table></div>
-      <div class="actions"><button type="button" class="secondary small" id="previous-page" disabled>Previous</button><button type="button" class="secondary small" id="next-page" disabled>Next</button></div>
+
+    <section class="card results" id="results" aria-labelledby="results-heading" tabindex="-1" hidden>
+      <div class="section-title"><h2 id="results-heading"><span class="step">3</span> Run results</h2><div class="actions compact"><button type="button" class="secondary small" id="refresh-run">Refresh run</button><a id="download-trace" class="button" hidden>Download run.jsonl</a></div></div>
+      <p id="run-identity" class="hint"></p>
+      <div class="run-state"><span id="run-badge" class="status"></span><p id="run-status" role="status"></p></div>
+      <p id="validation-status" class="hint"></p>
+      <div id="result-details" hidden>
+        <div id="metrics" class="metrics"></div>
+        <p id="drop-explanation" class="callout" hidden></p>
+        <h3>How each server performed</h3>
+        <p class="hint">CPU utilization measures useful completed work over the time from the first arrival to the last event.</p>
+        <div class="table-scroll"><table><thead><tr><th>Server</th><th>Completed</th><th>Work units</th><th>CPU utilization</th><th>Requests / second</th></tr></thead><tbody id="server-metrics"></tbody></table></div>
+        <div class="section-title timeline-heading"><h3>Request timeline</h3><span id="timeline-window" class="hint"></span></div>
+        <p class="hint"><span class="legend wait"></span> Waiting in queue <span class="legend execution"></span> Running · All times are simulation seconds. Bars use the same scale.</p>
+        <div class="table-scroll timeline-scroll" tabindex="0" aria-label="Request timeline"><table class="timeline"><thead><tr><th>Request</th><th>Server</th><th>Timeline</th><th>Arrived</th><th>Started</th><th>Finished</th><th>Wait</th></tr></thead><tbody id="timeline"></tbody></table></div>
+      </div>
+      <details><summary>Original inputs for this run</summary><p class="hint">These snapshots are saved with the run and are unaffected by later server edits.</p><pre id="snapshots"></pre></details>
     </section>
-    <section class="card" id="results" aria-labelledby="results-heading" hidden>
-      <div class="section-title"><h2 id="results-heading">Run results</h2><a id="download-trace" class="button" hidden>Download run.jsonl</a></div>
-      <p id="run-status" aria-live="polite"></p><p id="validation-status" class="hint"></p>
-      <div id="metrics" class="metrics"></div>
-      <h3>Server performance</h3><div class="table-scroll"><table><thead><tr><th>Server</th><th>Finished</th><th>Work units</th><th>CPU utilization</th><th>Requests / tick</th></tr></thead><tbody id="server-metrics"></tbody></table></div>
-      <h3>Request timeline</h3><p class="hint"><span class="legend wait"></span> Queued <span class="legend execution"></span> Running · All bars share the same time scale. Exact ticks are listed alongside.</p>
-      <div class="table-scroll timeline-scroll"><table class="timeline"><thead><tr><th>Request</th><th>Server</th><th>Timeline</th><th>Arrival / start / finish</th></tr></thead><tbody id="timeline"></tbody></table></div>
-      <details><summary>Input snapshots</summary><pre id="snapshots"></pre></details>
+
+    <section class="card" aria-labelledby="history-heading">
+      <div class="section-title"><h2 id="history-heading">Saved runs</h2><button type="button" class="secondary small" id="refresh-history">Refresh history</button></div>
+      <p class="hint" id="history-count">Loading run history…</p>
+      <div class="table-scroll history-scroll"><table><thead><tr><th>Run</th><th>Created</th><th>Model</th><th>Strategy</th><th>Status</th><th>Details</th></tr></thead><tbody id="runs"></tbody></table></div>
+      <div class="actions"><button type="button" class="secondary small" id="previous-page" disabled>Previous page</button><button type="button" class="secondary small" id="next-page" disabled>Next page</button></div>
     </section>
   </main>
+  <dialog id="delete-dialog" aria-labelledby="delete-heading"><h2 id="delete-heading">Delete this server?</h2><p id="delete-description"></p><p class="hint">Saved runs keep their server snapshots.</p><div class="actions"><button type="button" class="secondary" id="cancel-delete">Keep server</button><button type="button" class="danger-button" id="confirm-delete">Delete server</button></div></dialog>
   <footer class="shell">Deterministic simulation · two execution models · four scheduling strategies</footer>
 </body>
 </html>
