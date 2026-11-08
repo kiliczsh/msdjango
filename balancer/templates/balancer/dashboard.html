@@ -1,0 +1,62 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medsien · Load balancer lab</title>
+  <link rel="stylesheet" href="{% static 'balancer/dashboard.css' %}">
+  <script src="{% static 'balancer/dashboard.js' %}" defer></script>
+</head>
+<body>
+  <header><div class="shell"><span class="brand">MEDSIEN <span>/ engineering lab</span></span>
+    <h1>Load balancer simulation</h1><p>Configure a cluster. Compare scheduling. Inspect every request.</p></div></header>
+  <main class="shell">
+    <div id="notice" role="alert" hidden></div>
+    <div class="columns">
+      <section class="card" aria-labelledby="cluster-heading">
+        <div class="section-title"><h2 id="cluster-heading">Server cluster</h2><span id="server-count" class="badge">Loading</span></div>
+        <p class="hint">Changes apply to future runs. Existing runs retain their configuration.</p>
+        <div class="table-scroll"><table><thead><tr><th>ID</th><th>CPU / tick</th><th>Memory MB</th><th>Starts / tick</th><th>Actions</th></tr></thead><tbody id="servers"></tbody></table></div>
+        <form id="server-form">
+          {% csrf_token %}
+          <h3 id="server-form-title">Add server</h3>
+          <div class="fields">
+            <label>Server ID<input name="id" required maxlength="80" placeholder="s3"></label>
+            <label>CPU units / tick<input name="cpu_units_per_tick" type="number" min="1" max="1000000000" value="10" required></label>
+            <label>Memory (MB)<input name="mem_mb" type="number" min="1" max="1000000000" value="1024" required></label>
+            <label>Starts / tick<input name="rate_limit_per_sec" type="number" min="1" max="1000000000" value="2" required></label>
+          </div>
+          <div class="actions"><button type="submit" id="save-server">Add server</button><button type="button" class="secondary" id="cancel-edit" hidden>Cancel edit</button></div>
+        </form>
+      </section>
+      <section class="card" aria-labelledby="simulation-heading">
+        <div class="section-title"><h2 id="simulation-heading">New simulation</h2><span class="badge">1 tick = 1 second</span></div>
+        <form id="run-form">
+          <label>Execution model<select name="mode"><option value="sequential">Sequential · one request per server</option><option value="concurrent">Concurrent · equal CPU sharing</option></select></label>
+          <label>Scheduling strategy<select name="strategy"><option value="first_fit">First fit</option><option value="round_robin">Round robin</option><option value="least_connections">Least connections</option><option value="fastest_server">Fastest server</option></select></label>
+          <p id="strategy-description" class="hint"></p>
+          <label>Requests CSV<input name="requests_file" type="file" accept=".csv,text/csv" required></label>
+          <p class="hint">Columns: <code>t,request_id,work_units,mem_mb</code><br>Up to 2,000 requests and 1 MB. Temporarily blocked requests wait in strict FIFO order.</p>
+          <button type="submit" id="start-run">Run simulation</button>
+        </form>
+      </section>
+    </div>
+    <section class="card" aria-labelledby="history-heading">
+      <div class="section-title"><h2 id="history-heading">Run history</h2><button type="button" class="secondary small" id="refresh-history">Refresh</button></div>
+      <div class="table-scroll"><table><thead><tr><th>Created</th><th>Model</th><th>Strategy</th><th>Status</th><th>Details</th></tr></thead><tbody id="runs"></tbody></table></div>
+      <div class="actions"><button type="button" class="secondary small" id="previous-page" disabled>Previous</button><button type="button" class="secondary small" id="next-page" disabled>Next</button></div>
+    </section>
+    <section class="card" id="results" aria-labelledby="results-heading" hidden>
+      <div class="section-title"><h2 id="results-heading">Run results</h2><a id="download-trace" class="button" hidden>Download run.jsonl</a></div>
+      <p id="run-status" aria-live="polite"></p><p id="validation-status" class="hint"></p>
+      <div id="metrics" class="metrics"></div>
+      <h3>Server performance</h3><div class="table-scroll"><table><thead><tr><th>Server</th><th>Finished</th><th>Work units</th><th>CPU utilization</th><th>Requests / tick</th></tr></thead><tbody id="server-metrics"></tbody></table></div>
+      <h3>Request timeline</h3><p class="hint"><span class="legend wait"></span> Queued <span class="legend execution"></span> Running · All bars share the same time scale. Exact ticks are listed alongside.</p>
+      <div class="table-scroll timeline-scroll"><table class="timeline"><thead><tr><th>Request</th><th>Server</th><th>Timeline</th><th>Arrival / start / finish</th></tr></thead><tbody id="timeline"></tbody></table></div>
+      <details><summary>Input snapshots</summary><pre id="snapshots"></pre></details>
+    </section>
+  </main>
+  <footer class="shell">Deterministic simulation · two execution models · four scheduling strategies</footer>
+</body>
+</html>
