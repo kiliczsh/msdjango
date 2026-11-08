@@ -1,0 +1,68 @@
+{
+  "corrected": "passed",
+  "mode": "sequential",
+  "original": "passed",
+  "sha256": "225b3f69a060d1821c7756e40830a9274f595b516eeb74e3ff0bf0ca75201845",
+  "strategy": "first_fit",
+  "summary": {
+    "avg_wait_ticks": 0.25,
+    "dropped": 0,
+    "end_tick": 4,
+    "finished": 4,
+    "max_wait_ticks": 1,
+    "outcomes": [
+      {
+        "arrival": 0,
+        "finish": 2,
+        "request_id": "r1",
+        "server_id": "s1",
+        "start": 0,
+        "status": "finished"
+      },
+      {
+        "arrival": 0,
+        "finish": 2,
+        "request_id": "r2",
+        "server_id": "s2",
+        "start": 0,
+        "status": "finished"
+      },
+      {
+        "arrival": 1,
+        "finish": 4,
+        "request_id": "r3",
+        "server_id": "s1",
+        "start": 2,
+        "status": "finished"
+      },
+      {
+        "arrival": 2,
+        "finish": 3,
+        "request_id": "r4",
+        "server_id": "s2",
+        "start": 2,
+        "status": "finished"
+      }
+    ],
+    "p50_wait_ticks": 0,
+    "p95_wait_ticks": 1,
+    "per_server": [
+      {
+        "cpu_utilization": 0.875,
+        "finished": 2,
+        "server_id": "s1",
+        "throughput_per_tick": 0.5,
+        "work_units": 35
+      },
+      {
+        "cpu_utilization": 0.75,
+        "finished": 2,
+        "server_id": "s2",
+        "throughput_per_tick": 0.5,
+        "work_units": 15
+      }
+    ],
+    "throughput_per_tick": 1.0,
+    "total_requests": 4
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "corrected": "passed",
+  "mode": "concurrent",
+  "original": "not_applicable",
+  "sha256": "f63abcc30825b29abdd437f551123eae86416fe21c4e68a9f5694494e4e521e8",
+  "strategy": "fastest_server",
+  "summary": {
+    "avg_wait_ticks": 0.0,
+    "dropped": 0,
+    "end_tick": 6,
+    "finished": 4,
+    "max_wait_ticks": 0,
+    "outcomes": [
+      {
+        "arrival": 0,
+        "finish": 6,
+        "request_id": "r1",
+        "server_id": "s1",
+        "start": 0,
+        "status": "finished"
+      },
+      {
+        "arrival": 0,
+        "finish": 3,
+        "request_id": "r2",
+        "server_id": "s1",
+        "start": 0,
+        "status": "finished"
+      },
+      {
+        "arrival": 1,
+        "finish": 6,
+        "request_id": "r3",
+        "server_id": "s1",
+        "start": 1,
+        "status": "finished"
+      },
+      {
+        "arrival": 2,
+        "finish": 4,
+        "request_id": "r4",
+        "server_id": "s1",
+        "start": 2,
+        "status": "finished"
+      }
+    ],
+    "p50_wait_ticks": 0,
+    "p95_wait_ticks": 0,
+    "per_server": [
+      {
+        "cpu_utilization": 0.8333333333333334,
+        "finished": 4,
+        "server_id": "s1",
+        "throughput_per_tick": 0.6666666666666666,
+        "work_units": 50
+      },
+      {
+        "cpu_utilization": 0.0,
+        "finished": 0,
+        "server_id": "s2",
+        "throughput_per_tick": 0.0,
+        "work_units": 0
+      }
+    ],
+    "throughput_per_tick": 0.6666666666666666,
+    "total_requests": 4
+  }
+}

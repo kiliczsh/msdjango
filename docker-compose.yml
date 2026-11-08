@@ -1,0 +1,106 @@
+name: medsien-load-balancer
+
+x-app: &app
+  build:
+    context: .
+    target: runtime
+  image: medsien-simulator:local
+  environment: &environment
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-docker-demo-only-not-for-public-hosting}
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,web
+    POSTGRES_DB: ${POSTGRES_DB:-medsien}
+    POSTGRES_USER: ${POSTGRES_USER:-medsien}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medsien-local}
+    POSTGRES_HOST: db
+    CELERY_BROKER_URL: redis://redis:6379/0
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-medsien}
+      POSTGRES_USER: ${POSTGRES_USER:-medsien}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medsien-local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  init:
+    <<: *app
+    command: [sh, -c, "python manage.py migrate --noinput && python manage.py load_servers task/servers.json --if-empty"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    ports:
+      - "127.0.0.1:${PORT:-8000}:8000"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    command: [celery, -A, config, worker, --loglevel=info, --concurrency=2, --max-tasks-per-child=25]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: development
+    image: medsien-simulator:test
+    profiles: [test]
+    environment:
+      <<: *environment
+      DJANGO_SETTINGS_MODULE: config.settings
+      DJANGO_ALLOWED_HOSTS: testserver,localhost,127.0.0.1,web
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  smoke:
+    <<: *app
+    profiles: [test]
+    command: [python, -m, scripts.smoke]
+    depends_on:
+      web:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
