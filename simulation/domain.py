@@ -42,6 +42,13 @@ def identifier(value: object, name: str) -> str:
     return value
 
 
+def server_identifier(value: object) -> str:
+    value = identifier(value, "server id")
+    if "/" in value or value in {".", ".."}:
+        raise InputError("Server IDs cannot contain slashes or be '.' or '..'.")
+    return value
+
+
 @dataclass(frozen=True)
 class Server:
     id: str
@@ -50,7 +57,7 @@ class Server:
     rate_limit_per_sec: int
 
     def __post_init__(self) -> None:
-        identifier(self.id, "server id")
+        server_identifier(self.id)
         integer(self.cpu_units_per_tick, "cpu_units_per_tick")
         integer(self.mem_mb, "mem_mb")
         integer(self.rate_limit_per_sec, "rate_limit_per_sec")
@@ -113,7 +120,11 @@ def parse_requests(text: str) -> list[Request]:
         raise InputError("CSV exceeds the 1 MB limit.")
     reader = csv.DictReader(io.StringIO(text.lstrip("\ufeff")), strict=True)
     fields = {"t", "request_id", "work_units", "mem_mb"}
-    if reader.fieldnames is None or set(reader.fieldnames) != fields or len(reader.fieldnames) != 4:
+    try:
+        headers = reader.fieldnames
+    except csv.Error as exc:
+        raise InputError(f"Malformed CSV header: {exc}") from exc
+    if headers is None or set(headers) != fields or len(headers) != 4:
         raise InputError("CSV must have exactly: t,request_id,work_units,mem_mb.")
     requests: list[Request] = []
     try:

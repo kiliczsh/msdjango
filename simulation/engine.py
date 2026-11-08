@@ -96,7 +96,11 @@ def simulate(servers: list[Server], requests: list[Request], config: Configurati
                 share = Fraction(worker.spec.cpu_units_per_tick, len(worker.active))
                 delays.append(min(ceil(work / share) for work in worker.active.values()))
         # A start-rate budget replenishes next tick even without arrivals or completions.
-        if queue:
+        if queue and any(
+            (config.mode == "concurrent" or not worker.active)
+            and worker.memory + queue[0].mem_mb <= worker.spec.mem_mb
+            for worker in workers
+        ):
             delays.append(1)
         if not delays:
             break

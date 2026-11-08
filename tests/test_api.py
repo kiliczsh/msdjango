@@ -169,3 +169,17 @@ def test_seed_is_idempotent_and_preserves_dashboard_changes() -> None:
     Server.objects.filter(pk="s1").update(mem_mb=7)
     call_command("load_servers", ROOT / "task/servers.json", if_empty=True)
     assert Server.objects.get(pk="s1").mem_mb == 7
+
+
+@pytest.mark.usefixtures("servers")
+def test_interrupted_run_can_be_resumed(client: APIClient) -> None:
+    with patch("balancer.views.enqueue_run"):
+        client.post(
+            "/api/runs/",
+            {"mode": "concurrent", "strategy": "first_fit", "requests_file": upload()},
+            format="multipart",
+        )
+    Run.objects.update(status="running")
+    with patch("balancer.management.commands.resume_runs.enqueue_run", side_effect=execute_run):
+        call_command("resume_runs")
+    assert Run.objects.get().status == "succeeded"

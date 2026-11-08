@@ -1,7 +1,8 @@
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from balancer.models import Server
-from simulation.domain import MODES, STRATEGIES, InputError, identifier, integer
+from simulation.domain import MODES, STRATEGIES, InputError, integer, server_identifier
 
 
 class StrictIntegerField(serializers.IntegerField):
@@ -20,7 +21,7 @@ class ServerSerializer(serializers.Serializer):
 
     def validate_id(self, value: str) -> str:
         try:
-            identifier(value, "server id")
+            server_identifier(value)
         except InputError as exc:
             raise serializers.ValidationError(str(exc)) from exc
         if self.instance is not None and value != self.instance.pk:
@@ -30,7 +31,13 @@ class ServerSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data: dict[str, object]) -> Server:
-        return Server.objects.create(**validated_data)
+        try:
+            with transaction.atomic():
+                return Server.objects.create(**validated_data)
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {"id": "A server with this ID already exists."}
+            ) from exc
 
     def update(self, instance: Server, validated_data: dict[str, object]) -> Server:
         for name, value in validated_data.items():

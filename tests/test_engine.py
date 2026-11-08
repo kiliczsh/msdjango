@@ -199,6 +199,7 @@ def test_validator_rejects_resource_violations(limit: str) -> None:
         "t,request_id,work_units,mem_mb\n0,r,1\n",
         "t,request_id,work_units,mem_mb\n0,r,1,1,extra\n",
         "t,request_id,work_units,mem_mb\n",
+        '"unterminated header',
     ],
 )
 def test_invalid_csv(csv_text: str) -> None:
@@ -213,3 +214,19 @@ def test_all_dropped_and_idle_gap() -> None:
     assert [e["event"] for e in events] == ["REQUEST_ARRIVED", "REQUEST_DROPPED"]
     assert validate(servers, requests, events, Configuration()).valid
     assert summarize(servers, requests, events)["avg_wait_ticks"] is None
+
+
+def test_large_blocked_queue_and_duration_limit() -> None:
+    servers = [Server("s", 1, 1, 1)]
+    requests = [Request("a", 0, 999_999, 1), Request("b", 0, 1, 1)]
+    events = simulate(servers, requests, Configuration())
+    assert events[-1]["t"] == 1_000_000
+    assert validate(servers, requests, events, Configuration()).valid
+    with pytest.raises(InputError, match="tick limit"):
+        simulate(servers, [*requests, Request("c", 0, 1, 1)], Configuration())
+
+
+@pytest.mark.parametrize("sid", ["a/b", ".", ".."])
+def test_unaddressable_server_ids_are_rejected(sid: str) -> None:
+    with pytest.raises(InputError):
+        Server(sid, 1, 1, 1)
