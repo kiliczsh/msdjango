@@ -6,6 +6,12 @@ from django.db import models
 from simulation.domain import MODES, STRATEGIES
 
 
+class BootstrapMarker(models.Model):
+    """Record initial seeding separately from the user-managed server table."""
+
+    name = models.CharField(primary_key=True, max_length=40)
+
+
 class Server(models.Model):
     id = models.CharField(primary_key=True, max_length=80)
     cpu_units_per_tick = models.PositiveIntegerField(

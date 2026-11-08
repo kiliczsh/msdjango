@@ -183,3 +183,11 @@ def test_interrupted_run_can_be_resumed(client: APIClient) -> None:
     with patch("balancer.management.commands.resume_runs.enqueue_run", side_effect=execute_run):
         call_command("resume_runs")
     assert Run.objects.get().status == "succeeded"
+
+
+def test_initial_seed_never_recreates_deliberately_deleted_servers() -> None:
+    call_command("load_servers", ROOT / "task/servers.json", once=True)
+    assert Server.objects.count() == 2
+    Server.objects.all().delete()
+    call_command("load_servers", ROOT / "task/servers.json", once=True)
+    assert not Server.objects.exists()

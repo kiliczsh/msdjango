@@ -44,7 +44,7 @@ services:
 
   init:
     <<: *app
-    command: [sh, -c, "python manage.py migrate --noinput && python manage.py load_servers task/servers.json --if-empty"]
+    command: [sh, -c, "python manage.py migrate --noinput && python manage.py load_servers task/servers.json --once"]
     depends_on:
       db:
         condition: service_healthy

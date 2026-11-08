@@ -3,7 +3,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
 
-from balancer.models import Server
+from balancer.models import BootstrapMarker, Server
 from simulation.domain import InputError, parse_servers, read_json
 
 
@@ -13,8 +13,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("path", type=Path)
         parser.add_argument("--if-empty", action="store_true")
+        parser.add_argument("--once", action="store_true", help="Seed a fresh database only once.")
 
     def handle(self, *args: object, **options: object) -> None:
+        if options["once"] and BootstrapMarker.objects.filter(pk="initial_servers").exists():
+            self.stdout.write("Initial server configuration already loaded.")
+            return
         if options["if_empty"] and Server.objects.exists():
             self.stdout.write("Existing server configuration retained.")
             return
@@ -25,6 +29,11 @@ class Command(BaseCommand):
         except (OSError, InputError) as exc:
             raise CommandError(str(exc)) from exc
         with transaction.atomic():
+            if options["once"]:
+                _, created = BootstrapMarker.objects.get_or_create(pk="initial_servers")
+                if not created or Server.objects.exists():
+                    self.stdout.write("Existing server configuration retained.")
+                    return
             for server in servers:
                 Server.objects.update_or_create(
                     pk=server.id,
