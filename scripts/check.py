@@ -15,6 +15,7 @@ def main() -> int:
         [sys.executable, "-m", "ruff", "format", "--check", "."],
         [sys.executable, "-m", "ty", "check"],
         [sys.executable, "-m", "pyright"],
+        ["node", "--check", "balancer/static/balancer/dashboard.js"],
         [sys.executable, "manage.py", "check"],
         [sys.executable, "manage.py", "makemigrations", "--check", "--dry-run"],
         [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"],
